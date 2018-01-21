@@ -19,34 +19,31 @@ function loadAnnotations(dataset)
     annot = {}
 
     -- Read in annotation information from hdf5 file
-    local tags = {'center','scale'}
+    local tags = {'center','scale', 'frame_id', 'video_id'}
     for _,tag in ipairs(tags) do annot[tag] = a:read(tag):all() end
     annot.nsamples = annot.center:size()[1]
     a:close()
 
     -- Load in image file names
     -- (workaround for not being able to read the strings in the hdf5 file)
-    annot.images = {}
+    annot.videos = {}
     local toIdxs = {}
-    local namesFile = io.open('data/' .. dataset .. '/annot/' .. set .. '_images.txt')
+    local namesFile = io.open('data/' .. dataset .. '/annot/' .. set .. '_videos.txt')
     local idx = 1
     for line in namesFile:lines() do
-        annot.images[idx] = line
+        annot.videos[idx] = line
         if not toIdxs[line] then toIdxs[line] = {} end
         table.insert(toIdxs[line], idx)
         idx = idx + 1
     end
     namesFile:close()
 
-    -- This allows us to reference all people who are in the same image
-    annot.imageToIdxs = toIdxs
-
     return annot
 end
 
 function getPreds3D(hm)
     assert(hm:size():size() == 4, 'Input must be 4-D tensor')
-    local max, idx = torch.max(hm:view(hm:size(1), hm:size(2)/64, 64*hm:size(3) * hm:size(4)), 3)
+    local max, idx = torch.max(hm:view(hm:size(1), hm:size(2)/32, 32*hm:size(3) * hm:size(4)), 3)
     local preds = torch.repeatTensor(idx, 1, 1, 3):float()
     preds[{{}, {}, 1}]:apply(function(x) return (x - 1) % hm:size(4) + 1 end)
     preds[{{}, {}, 2}]:add(-1):div(hm:size(4)):floor():mod(hm:size(3)):add(1)
@@ -75,13 +72,15 @@ function getPreds(hms, center, scale)
 end
 
 local matchedParts = {
-    {2,5}, {3,6}, {4,7}, {12,15}, {13,16}, {14,17}
+   { 2,  3}, { 5,  6}, { 8,  9},
+   {11, 12}, {14, 15}, {17, 18},
+   {19, 20}, {21, 22}, {23, 24},
 }
 
 matchedParts3D = {}
 for j = 1,#matchedParts do
-    for k = 1,64 do
-         table.insert(matchedParts3D,{(matchedParts[j][1]-1)*64+k,(matchedParts[j][2]-1)*64+k})
+    for k = 1,32 do
+         table.insert(matchedParts3D,{(matchedParts[j][1]-1)*32+k,(matchedParts[j][2]-1)*32+k})
     end
 end
 

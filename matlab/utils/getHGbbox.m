@@ -3,8 +3,10 @@ function bbox = getHGbbox(center,scale)
     % get the bounding box of the image that was used as input to the
     % hourglass network
 
-    ul = transform([1,1],center,scale,[256 256],1);
-    br = transform([257,257],center,scale,[256 256],1);
+    ul = transform([1,1],center,scale,[128 128],1);
+    br = transform([127,127],center,scale,[128 128],1);
+%     ul = transform([1,1],center,scale,[256 256],1);
+%     br = transform([257,257],center,scale,[256 256],1);
     bbox = [ul(1), ul(2), br(1), br(2)];
 
 end    
